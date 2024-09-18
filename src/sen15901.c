@@ -140,7 +140,7 @@ SEN15901_status_t SEN15901_start_measurements(SEN15901_process_cb_t process_call
 		goto errors;
 	}
 	// Register callback.
-
+	sen15901_ctx.process_callback = process_callback;
 	// Reset second counters.
 	sen15901_ctx.wind_speed_seconds_count = 0;
 	sen15901_ctx.wind_direction_seconds_count = 0;
