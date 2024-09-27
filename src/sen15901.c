@@ -174,6 +174,8 @@ SEN15901_status_t SEN15901_process(void) {
 	sen15901_ctx.tick_second_flag = 0;
 	// Update wind speed if period is reached.
 	if (sen15901_ctx.wind_speed_seconds_count >= SEN15901_DRIVER_WIND_SPEED_SAMPLING_TIME_SECONDS) {
+		// Reset seconds counter.
+		sen15901_ctx.wind_speed_seconds_count = 0;
 		// Compute new value.
 		sen15901_ctx.wind_speed_mh = (sen15901_ctx.wind_speed_edge_count * SEN15901_WIND_SPEED_1HZ_TO_MH) / (SEN15901_DRIVER_WIND_SPEED_SAMPLING_TIME_SECONDS);
 		sen15901_ctx.wind_speed_edge_count = 0;
@@ -182,13 +184,12 @@ SEN15901_status_t SEN15901_process(void) {
 			sen15901_ctx.wind_speed_mh_peak = sen15901_ctx.wind_speed_mh;
 		}
 		// Update average value.
-		sen15901_ctx.wind_speed_mh_average = ((sen15901_ctx.wind_speed_mh_average * sen15901_ctx.wind_speed_data_count) + sen15901_ctx.wind_speed_mh) / (sen15901_ctx.wind_speed_data_count + 1);
-		sen15901_ctx.wind_speed_data_count++;
-		// Reset seconds counter.
-		sen15901_ctx.wind_speed_seconds_count = 0;
+		MATH_rolling_mean(sen15901_ctx.wind_speed_mh_average, sen15901_ctx.wind_speed_data_count, sen15901_ctx.wind_speed_mh, uint32_t);
 	}
 	// Update wind direction if period is reached.
 	if (sen15901_ctx.wind_direction_seconds_count >= SEN15901_DRIVER_WIND_DIRECTION_SAMPLING_PERIOD_SECONDS) {
+		// Reset seconds counter.
+		sen15901_ctx.wind_direction_seconds_count = 0;
 		// Compute direction only if there is wind.
 		if ((sen15901_ctx.wind_speed_mh / 1000) > 0) {
 			// Turn external ADC on.
@@ -206,8 +207,6 @@ SEN15901_status_t SEN15901_process(void) {
 			sen15901_ctx.wind_direction_trend_point_x += (sen15901_ctx.wind_speed_mh / 1000) * (int32_t) MATH_COS_TABLE[sen15901_ctx.wind_direction_degrees];
 			sen15901_ctx.wind_direction_trend_point_y += (sen15901_ctx.wind_speed_mh / 1000) * (int32_t) MATH_SIN_TABLE[sen15901_ctx.wind_direction_degrees];
 		}
-		// Reset seconds counter.
-		sen15901_ctx.wind_direction_seconds_count = 0;
 	}
 errors:
 	return status;
