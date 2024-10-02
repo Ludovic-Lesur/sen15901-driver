@@ -61,22 +61,22 @@ SEN15901_status_t SEN15901_HW_init(SEN15901_HW_configuration_t* configuration);
 SEN15901_status_t SEN15901_HW_de_init(void);
 
 /*!******************************************************************
- * \fn SEN15901_status_t SEN15901_HW_start_measurements(void)
- * \brief Start continuous measurements.
- * \param[in]  	none
+ * \fn SEN15901_status_t SEN15901_HW_set_wind_speed_interrupt(uint8_t enable)
+ * \brief Set wind speed interrupt state.
+ * \param[in]  	enable: Disable (0) or enable (otherwise) the wind speed GPIO interrupt.
  * \param[out] 	none
  * \retval		Function execution status.
  *******************************************************************/
-SEN15901_status_t SEN15901_HW_start_measurements(void);
+SEN15901_status_t SEN15901_HW_set_wind_speed_interrupt(uint8_t enable);
 
 /*!******************************************************************
- * \fn SEN15901_status_t SEN15901_HW_stop_measurements(void)
- * \brief Stop continuous measurements.
- * \param[in]  	none
+ * \fn SEN15901_status_t SEN15901_HW_set_rainfall_interrupt(uint8_t enable)
+ * \brief Set rainfall interrupt state.
+ * \param[in]  	enable: Disable (0) or enable (otherwise) the rainfall GPIO interrupt.
  * \param[out] 	none
  * \retval		Function execution status.
  *******************************************************************/
-SEN15901_status_t SEN15901_HW_stop_measurements(void);
+SEN15901_status_t SEN15901_HW_set_rainfall_interrupt(uint8_t enable);
 
 /*!******************************************************************
  * \fn SEN15901_status_t SEN15901_HW_adc_get_wind_direction_ratio(int32_t* wind_direction_ratio_permille)

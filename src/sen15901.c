@@ -24,16 +24,17 @@
 
 #define SEN15901_RAIN_EDGE_TO_UM								279
 
-#define SEN15901_RESISTOR_DIVIDER_RATIO(rw)						((1000 * rw) / (rw + SEN15901_DRIVER_WIND_DIRECTION_PULL_UP_RESISTOR_OHMS))
+#define SEN15901_RESISTOR_DIVIDER_RATIO(rw)						((MATH_PERMILLE_MAX * rw) / (rw + SEN15901_DRIVER_WIND_DIRECTION_PULL_UP_RESISTOR_OHMS))
 #define SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(rw1, rw2)		((SEN15901_RESISTOR_DIVIDER_RATIO(rw1) + SEN15901_RESISTOR_DIVIDER_RATIO(rw2)) >> 1)
 
 /*** SEN15901 local structures ***/
 
 /*******************************************************************/
 typedef struct {
-	// Process callback.
+	// State machine.
 	SEN15901_process_cb_t process_callback;
 	volatile uint8_t tick_second_flag;
+	uint8_t wind_measurement_enable_flag;
 	// Wind speed.
 	volatile uint8_t wind_speed_seconds_count;
 	volatile uint32_t wind_speed_edge_count;
@@ -52,7 +53,7 @@ typedef struct {
 
 /*** SEN15901 local global variables ***/
 
-static const int32_t SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[SEN15901_WIND_DIRECTIONS_NUMBER - 1] = {
+static const int32_t SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[SEN15901_WIND_DIRECTIONS_NUMBER] = {
 	SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(688,   891),
 	SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(891,   1000),
 	SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(1000,  1410),
@@ -67,7 +68,8 @@ static const int32_t SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[SEN15901_WIND_DIREC
 	SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(21880, 33000),
 	SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(33000, 42120),
 	SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(42120, 64900),
-	SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(64900, 120000)
+	SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(64900, 120000),
+	MATH_PERMILLE_MAX
 };
 static const int32_t SEN15901_WIND_DIRECTION_ANGLE_DEGREES[SEN15901_WIND_DIRECTIONS_NUMBER] = {
 	112, 67, 90, 157, 135, 202, 180, 22, 45, 247, 225, 337, 0, 292, 315, 270
@@ -90,25 +92,36 @@ static void _SEN15901_rainfall_edge_callback(void) {
 
 /*******************************************************************/
 static void _SEN15901_tick_second_callback(void) {
-	// Update local flags.
-	sen15901_ctx.wind_speed_seconds_count++;
-	sen15901_ctx.wind_direction_seconds_count++;
-	sen15901_ctx.tick_second_flag = 1;
-	// Ask for processing.
-	if (sen15901_ctx.process_callback != NULL) {
-		sen15901_ctx.process_callback();
+	// Check enable flag.
+	if (sen15901_ctx.wind_measurement_enable_flag != 0) {
+		// Update local flags.
+		sen15901_ctx.wind_speed_seconds_count++;
+		sen15901_ctx.wind_direction_seconds_count++;
+		sen15901_ctx.tick_second_flag = 1;
+		// Ask for processing.
+		if (sen15901_ctx.process_callback != NULL) {
+			sen15901_ctx.process_callback();
+		}
 	}
 }
 
 /*** SEN15901 functions ***/
 
 /*******************************************************************/
-SEN15901_status_t SEN15901_init(void) {
+SEN15901_status_t SEN15901_init(SEN15901_process_cb_t process_callback) {
 	// Local variables.
 	SEN15901_status_t status = SEN15901_SUCCESS;
 	SEN15901_HW_configuration_t hw_config;
 	// Reset data.
 	SEN15901_reset_measurements();
+	// Check parameter.
+	if (process_callback == NULL) {
+		status = SEN15901_ERROR_NULL_PARAMETER;
+		goto errors;
+	}
+	// Init context.
+	sen15901_ctx.wind_measurement_enable_flag = 0;
+	sen15901_ctx.process_callback = process_callback;
 	// Init hardware interface.
 	hw_config.wind_speed_edge_irq_callback = &_SEN15901_wind_speed_edge_callback;
 	hw_config.rainfall_edge_irq_callback = &_SEN15901_rainfall_edge_callback;
@@ -131,32 +144,31 @@ errors:
 }
 
 /*******************************************************************/
-SEN15901_status_t SEN15901_start_measurements(SEN15901_process_cb_t process_callback) {
+SEN15901_status_t SEN15901_set_wind_measurement(uint8_t enable) {
 	// Local variables.
 	SEN15901_status_t status = SEN15901_SUCCESS;
-	// Check parameter.
-	if (process_callback == NULL) {
-		status = SEN15901_ERROR_NULL_PARAMETER;
-		goto errors;
+	// Update local enable flag.
+	sen15901_ctx.wind_measurement_enable_flag = enable;
+	// Check enable bit.
+	if (enable == 0) {
+		// Reset second counters.
+		sen15901_ctx.wind_speed_seconds_count = 0;
+		sen15901_ctx.wind_direction_seconds_count = 0;
+		sen15901_ctx.tick_second_flag = 0;
 	}
-	// Register callback.
-	sen15901_ctx.process_callback = process_callback;
-	// Reset second counters.
-	sen15901_ctx.wind_speed_seconds_count = 0;
-	sen15901_ctx.wind_direction_seconds_count = 0;
-	// Start measurements on hardware side.
-	status = SEN15901_HW_start_measurements();
+	// Set interrupt state.
+	status = SEN15901_HW_set_wind_speed_interrupt(enable);
 	if (status != SEN15901_SUCCESS) goto errors;
 errors:
 	return status;
 }
 
 /*******************************************************************/
-SEN15901_status_t SEN15901_stop_measurements(void) {
+SEN15901_status_t SEN15901_set_rainfall_measurement(uint8_t enable) {
 	// Local variables.
 	SEN15901_status_t status = SEN15901_SUCCESS;
-	// Stop measurements on hardware side.
-	status = SEN15901_HW_stop_measurements();
+	// Set interrupt state.
+	status = SEN15901_HW_set_rainfall_interrupt(enable);
 	if (status != SEN15901_SUCCESS) goto errors;
 errors:
 	return status;
@@ -167,6 +179,7 @@ SEN15901_status_t SEN15901_process(void) {
 	// Local variables.
 	SEN15901_status_t status = SEN15901_SUCCESS;
 	int32_t wind_direction_ratio_permille = 0;
+	uint8_t ratio_valid = 0;
 	uint8_t idx = 0;
 	// Check flag.
 	if (sen15901_ctx.tick_second_flag == 0) goto errors;
@@ -197,15 +210,20 @@ SEN15901_status_t SEN15901_process(void) {
 			if (status != SEN15901_SUCCESS) goto errors;
 			// Convert ratio to direction.
 			for (idx=0 ; idx<SEN15901_WIND_DIRECTIONS_NUMBER ; idx++) {
-				if (wind_direction_ratio_permille < SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[idx]) {
+				if (wind_direction_ratio_permille <= SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[idx]) {
 					// Update current angle and table index.
 					sen15901_ctx.wind_direction_degrees = SEN15901_WIND_DIRECTION_ANGLE_DEGREES[idx];
+					ratio_valid = 1;
 					break;
 				}
 			}
+			if (ratio_valid == 0) {
+			    status = SEN15901_ERROR_RESISTOR_DIVIDER_RATIO;
+			    goto errors;
+			}
 			// Add new vector weighted by speed.
-			sen15901_ctx.wind_direction_trend_point_x += (sen15901_ctx.wind_speed_mh / 1000) * (int32_t) MATH_COS_TABLE[sen15901_ctx.wind_direction_degrees];
-			sen15901_ctx.wind_direction_trend_point_y += (sen15901_ctx.wind_speed_mh / 1000) * (int32_t) MATH_SIN_TABLE[sen15901_ctx.wind_direction_degrees];
+			sen15901_ctx.wind_direction_trend_point_x += ((int32_t) (sen15901_ctx.wind_speed_mh / 1000)) * ((int32_t) MATH_COS_TABLE[sen15901_ctx.wind_direction_degrees]);
+			sen15901_ctx.wind_direction_trend_point_y += ((int32_t) (sen15901_ctx.wind_speed_mh / 1000)) * ((int32_t) MATH_SIN_TABLE[sen15901_ctx.wind_direction_degrees]);
 		}
 	}
 errors:
@@ -268,16 +286,15 @@ errors:
 
 /*******************************************************************/
 void SEN15901_reset_measurements(void) {
-	// Measurement periods.
-	sen15901_ctx.wind_speed_seconds_count = 0;
-	sen15901_ctx.wind_direction_seconds_count = 0;
 	// Wind speed.
+	sen15901_ctx.wind_speed_seconds_count = 0;
 	sen15901_ctx.wind_speed_edge_count = 0;
 	sen15901_ctx.wind_speed_data_count = 0;
 	sen15901_ctx.wind_speed_mh = 0;
 	sen15901_ctx.wind_speed_mh_average = 0;
 	sen15901_ctx.wind_speed_mh_peak = 0;
 	// Wind direction.
+	sen15901_ctx.wind_direction_seconds_count = 0;
 	sen15901_ctx.wind_direction_degrees = 0;
 	sen15901_ctx.wind_direction_trend_point_x = 0;
 	sen15901_ctx.wind_direction_trend_point_y = 0;

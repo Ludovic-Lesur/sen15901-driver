@@ -35,18 +35,20 @@ SEN15901_status_t __attribute__((weak)) SEN15901_HW_de_init(void) {
 }
 
 /*******************************************************************/
-SEN15901_status_t __attribute__((weak)) SEN15901_HW_start_measurements(void) {
+SEN15901_status_t __attribute__((weak)) SEN15901_HW_set_wind_speed_interrupt(uint8_t enable) {
 	// Local variables.
 	SEN15901_status_t status = SEN15901_SUCCESS;
 	/* To be implemented */
+	UNUSED(enable);
 	return status;
 }
 
 /*******************************************************************/
-SEN15901_status_t __attribute__((weak)) SEN15901_HW_stop_measurements(void) {
+SEN15901_status_t __attribute__((weak)) SEN15901_HW_set_rainfall_interrupt(uint8_t enable) {
 	// Local variables.
 	SEN15901_status_t status = SEN15901_SUCCESS;
 	/* To be implemented */
+	UNUSED(enable);
 	return status;
 }
 
