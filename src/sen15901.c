@@ -72,7 +72,7 @@ static const int32_t SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[SEN15901_WIND_DIREC
     MATH_PERMILLE_MAX
 };
 
-static const int32_t SEN15901_WIND_DIRECTION_ANGLE_DEGREES[SEN15901_WIND_DIRECTIONS_NUMBER] = { 112, 67, 90, 157, 135, 202, 180, 22, 45, 247, 225, 337, 0, 292, 315, 270 };
+static const uint32_t SEN15901_WIND_DIRECTION_ANGLE_DEGREES[SEN15901_WIND_DIRECTIONS_NUMBER] = { 112, 67, 90, 157, 135, 202, 180, 22, 45, 247, 225, 337, 0, 292, 315, 270 };
 
 static SEN15901_context_t sen15901_ctx;
 
@@ -239,8 +239,8 @@ SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_mh, int32_t* pe
         status = SEN15901_ERROR_NULL_PARAMETER;
         goto errors;
     }
-    (*average_speed_mh) = sen15901_ctx.wind_speed_mh_average;
-    (*peak_speed_mh) = sen15901_ctx.wind_speed_mh_peak;
+    (*average_speed_mh) = (int32_t) (sen15901_ctx.wind_speed_mh_average);
+    (*peak_speed_mh) = (int32_t) (sen15901_ctx.wind_speed_mh_peak);
 errors:
     return status;
 }
@@ -279,7 +279,7 @@ SEN15901_status_t SEN15901_get_rainfall(int32_t* rainfall_um) {
         goto errors;
     }
     // Convert edge count to mm of rain.
-    (*rainfall_um) = (sen15901_ctx.rain_edge_count * SEN15901_RAIN_EDGE_TO_UM);
+    (*rainfall_um) = (int32_t) (sen15901_ctx.rain_edge_count * SEN15901_RAIN_EDGE_TO_UM);
 errors:
     return status;
 }
