@@ -11,7 +11,7 @@
 #ifndef SEN15901_DRIVER_DISABLE_FLAGS_FILE
 #include "sen15901_driver_flags.h"
 #endif
-#include "math.h"
+#include "maths.h"
 #include "types.h"
 
 /*** SEN15901 structures ***/
