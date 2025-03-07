@@ -13,8 +13,9 @@ Here is the versions compatibility table:
 
 | **sen15901-driver** | **embedded-utils** |
 |:---:|:---:|
-| [sw2.1](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.1) | >= [sw4.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw4.0) |
-| [sw2.0](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.0) | >= [sw4.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw4.0) |
+| [sw2.2](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.2) | >= [sw7.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw7.0) |
+| [sw2.1](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.1) | [sw4.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw4.0) to [sw6.2](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw6.2) |
+| [sw2.0](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.0) | [sw4.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw4.0) to [sw6.2](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw6.2) |
 | [sw1.1](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw1.1) | [sw3.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw3.0) |
 | [sw1.0](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw1.0) | [sw3.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw3.0) |
 
