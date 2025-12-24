@@ -33,3 +33,24 @@ Here is the versions compatibility table:
 | `SEN15901_DRIVER_WIND_DIRECTION_PULL_UP_RESISTOR_OHMS` | `<value>` | Value of the pull-up resistor placed on the wind direction input (in Ohms). |
 | `SEN15901_DRIVER_WIND_SPEED_SAMPLING_TIME_SECONDS` | `<value>` | Time interval in seconds where the wind speed is evaluated. |
 | `SEN15901_DRIVER_WIND_DIRECTION_SAMPLING_PERIOD_SECONDS` | `<value>` | Wind direction reading period in seconds. |
+
+# Build
+
+A static library can be compiled by command line with `cmake`.
+
+```bash
+mkdir build
+cd build
+cmake -DCMAKE_TOOLCHAIN_FILE="<toolchain_file_path>" \
+      -DTOOLCHAIN_PATH="<arm-none-eabi-gcc_path>" \
+      -DTYPES_PATH="<types_file_path>" \
+      -DEMBEDDED_UTILS_PATH="<embedded-utils_path>" \
+      -DSEN15901_DRIVER_GPIO_ERROR_BASE_LAST=0 \
+      -DSEN15901_DRIVER_TIMER_ERROR_BASE_LAST=0 \
+      -DSEN15901_DRIVER_ADC_ERROR_BASE_LAST=0 \
+      -DSEN15901_DRIVER_WIND_DIRECTION_PULL_UP_RESISTOR_OHMS=10000 \
+      -DSEN15901_DRIVER_WIND_SPEED_SAMPLING_TIME_SECONDS=1 \
+      -DSEN15901_DRIVER_WIND_DIRECTION_SAMPLING_PERIOD_SECONDS=10 \
+      -G "Unix Makefiles" ..
+make all
+```
