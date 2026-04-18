@@ -13,6 +13,7 @@ Here is the versions compatibility table:
 
 | **sen15901-driver** | **embedded-utils** |
 |:---:|:---:|
+| [sw2.7](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.7) | >= [sw7.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw7.0) |
 | [sw2.6](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.6) | >= [sw7.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw7.0) |
 | [sw2.5](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.5) | >= [sw7.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw7.0) |
 | [sw2.4](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.4) | >= [sw7.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw7.0) |
