@@ -24,20 +24,26 @@
  *******************************************************************/
 typedef void (*SEN15901_HW_gpio_edge_irq_cb_t)(void);
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \fn SEN15901_HW_tick_second_irq_cb_t
  * \brief 1 second timer interrupt callback.
  *******************************************************************/
 typedef void (*SEN15901_HW_tick_second_irq_cb_t)(void);
+#endif
 
 /*!******************************************************************
  * \struct SEN15901_HW_configuration_t
  * \brief SEN15901 hardware interface parameters.
  *******************************************************************/
 typedef struct {
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
     SEN15901_HW_gpio_edge_irq_cb_t wind_speed_edge_irq_callback;
-    SEN15901_HW_gpio_edge_irq_cb_t rainfall_edge_irq_callback;
     SEN15901_HW_tick_second_irq_cb_t tick_second_irq_callback;
+#endif
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
+    SEN15901_HW_gpio_edge_irq_cb_t rainfall_edge_irq_callback;
+#endif
 } SEN15901_HW_configuration_t;
 
 /*** SEN15901 HW functions ***/
@@ -60,6 +66,7 @@ SEN15901_status_t SEN15901_HW_init(SEN15901_HW_configuration_t* configuration);
  *******************************************************************/
 SEN15901_status_t SEN15901_HW_de_init(void);
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \fn SEN15901_status_t SEN15901_HW_set_wind_speed_interrupt(uint8_t enable)
  * \brief Set wind speed interrupt state.
@@ -68,16 +75,9 @@ SEN15901_status_t SEN15901_HW_de_init(void);
  * \retval      Function execution status.
  *******************************************************************/
 SEN15901_status_t SEN15901_HW_set_wind_speed_interrupt(uint8_t enable);
+#endif
 
-/*!******************************************************************
- * \fn SEN15901_status_t SEN15901_HW_set_rainfall_interrupt(uint8_t enable)
- * \brief Set rainfall interrupt state.
- * \param[in]   enable: Disable (0) or enable (otherwise) the rainfall GPIO interrupt.
- * \param[out]  none
- * \retval      Function execution status.
- *******************************************************************/
-SEN15901_status_t SEN15901_HW_set_rainfall_interrupt(uint8_t enable);
-
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \fn SEN15901_status_t SEN15901_HW_adc_get_wind_direction_ratio(int32_t* wind_direction_ratio_permille)
  * \brief Read wind direction analog input ratio.
@@ -86,6 +86,18 @@ SEN15901_status_t SEN15901_HW_set_rainfall_interrupt(uint8_t enable);
  * \retval      Function execution status.
  *******************************************************************/
 SEN15901_status_t SEN15901_HW_adc_get_wind_direction_ratio(int32_t* wind_direction_ratio_permille);
+#endif
+
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
+/*!******************************************************************
+ * \fn SEN15901_status_t SEN15901_HW_set_rainfall_interrupt(uint8_t enable)
+ * \brief Set rainfall interrupt state.
+ * \param[in]   enable: Disable (0) or enable (otherwise) the rainfall GPIO interrupt.
+ * \param[out]  none
+ * \retval      Function execution status.
+ *******************************************************************/
+SEN15901_status_t SEN15901_HW_set_rainfall_interrupt(uint8_t enable);
+#endif
 
 #endif /* SEN15901_DRIVER_DISABLE */
 

@@ -15,6 +15,12 @@
 #include "maths.h"
 #include "types.h"
 
+/*** SEN15901 macros ***/
+
+#if (!(defined SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE) && !(defined SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE))
+#define SEN15901_DRIVER_DISABLE
+#endif
+
 /*** SEN15901 structures ***/
 
 /*!******************************************************************
@@ -36,8 +42,11 @@ typedef enum {
     SEN15901_ERROR_BASE_LAST = (SEN15901_ERROR_BASE_MATH + MATH_ERROR_BASE_LAST)
 } SEN15901_status_t;
 
+
+
 #ifndef SEN15901_DRIVER_DISABLE
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \enum SEN15901_wind_direction_status_t
  * \brief SEN15901 driver wind direction data status.
@@ -47,15 +56,19 @@ typedef enum {
     SEN15901_WIND_DIRECTION_STATUS_UNDEFINED,
     SEN15901_WIND_DIRECTION_STATUS_LAST
 } SEN15901_wind_direction_status_t;
+#endif
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \fn SEN15901_process_cb_t
  * \brief SEN15901 driver process callback.
  *******************************************************************/
 typedef void (*SEN15901_process_cb_t)(void);
+#endif
 
 /*** SEN15901 functions ***/
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \fn SEN15901_status_t SEN15901_init(SEN15901_process_cb_t process_callback)
  * \brief Init SEN15901 driver.
@@ -64,6 +77,16 @@ typedef void (*SEN15901_process_cb_t)(void);
  * \retval      Function execution status.
  *******************************************************************/
 SEN15901_status_t SEN15901_init(SEN15901_process_cb_t process_callback);
+#else
+/*!******************************************************************
+ * \fn SEN15901_status_t SEN15901_init(void)
+ * \brief Init SEN15901 driver.
+ * \param[in]   none
+ * \param[out]  none
+ * \retval      Function execution status.
+ *******************************************************************/
+SEN15901_status_t SEN15901_init(void);
+#endif
 
 /*!******************************************************************
  * \fn SEN15901_status_t SEN15901_de_init(void)
@@ -75,23 +98,15 @@ SEN15901_status_t SEN15901_init(SEN15901_process_cb_t process_callback);
 SEN15901_status_t SEN15901_de_init(void);
 
 /*!******************************************************************
- * \fn SEN15901_status_t SEN15901_set_wind_measurement(uint8_t enable)
- * \brief Control wind speed and direction measurements.
- * \param[in]   enable: Disable (0) or enable (otherwise) wind speed and direction measurements.
+ * \fn void SEN15901_reset_measurements(void);
+ * \brief Reset wind and rainfall measurements.
+ * \param[in]   none
  * \param[out]  none
- * \retval      Function execution status.
+ * \retval      none
  *******************************************************************/
-SEN15901_status_t SEN15901_set_wind_measurement(uint8_t enable);
+void SEN15901_reset_measurements(void);
 
-/*!******************************************************************
- * \fn SEN15901_status_t SEN15901_set_rainfall_measurement(uint8_t enable)
- * \brief Control rainfall measurement.
- * \param[in]   enable: Disable (0) or enable (otherwise) rainfall measurement.
- * \param[out]  none
- * \retval      Function execution status.
- *******************************************************************/
-SEN15901_status_t SEN15901_set_rainfall_measurement(uint8_t enable);
-
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \fn SEN15901_status_t SEN15901_process(void)
  * \brief SEN15901 driver process function.
@@ -100,7 +115,20 @@ SEN15901_status_t SEN15901_set_rainfall_measurement(uint8_t enable);
  * \retval      Function execution status.
  *******************************************************************/
 SEN15901_status_t SEN15901_process(void);
+#endif
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*!******************************************************************
+ * \fn SEN15901_status_t SEN15901_set_wind_measurement(uint8_t enable)
+ * \brief Control wind speed and direction measurements.
+ * \param[in]   enable: Disable (0) or enable (otherwise) wind speed and direction measurements.
+ * \param[out]  none
+ * \retval      Function execution status.
+ *******************************************************************/
+SEN15901_status_t SEN15901_set_wind_measurement(uint8_t enable);
+#endif
+
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \fn SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_mh, int32_t* peak_speed_mh)
  * \brief Read wind speeds.
@@ -110,7 +138,9 @@ SEN15901_status_t SEN15901_process(void);
  * \retval      Function execution status.
  *******************************************************************/
 SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_mh, int32_t* peak_speed_mh);
+#endif
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \fn SEN15901_status_t SEN15901_get_wind_direction(int32_t* average_direction_degrees, SEN15901_wind_direction_status_t* direction_status)
  * \brief Read wind average direction.
@@ -120,7 +150,20 @@ SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_mh, int32_t* pe
  * \retval      Function execution status.
  *******************************************************************/
 SEN15901_status_t SEN15901_get_wind_direction(int32_t* average_direction_degrees, SEN15901_wind_direction_status_t* direction_status);
+#endif
 
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
+/*!******************************************************************
+ * \fn SEN15901_status_t SEN15901_set_rainfall_measurement(uint8_t enable)
+ * \brief Control rainfall measurement.
+ * \param[in]   enable: Disable (0) or enable (otherwise) rainfall measurement.
+ * \param[out]  none
+ * \retval      Function execution status.
+ *******************************************************************/
+SEN15901_status_t SEN15901_set_rainfall_measurement(uint8_t enable);
+#endif
+
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
 /*!******************************************************************
  * \fn SEN15901_status_t SEN15901_get_rainfall(int32_t* rainfall_um)
  * \brief Read rainfall.
@@ -129,15 +172,7 @@ SEN15901_status_t SEN15901_get_wind_direction(int32_t* average_direction_degrees
  * \retval      Function execution status.
  *******************************************************************/
 SEN15901_status_t SEN15901_get_rainfall(int32_t* rainfall_um);
-
-/*!******************************************************************
- * \fn void SEN15901_reset_measurements(void);
- * \brief Reset wind and rainfall measurements.
- * \param[in]   none
- * \param[out]  none
- * \retval      none
- *******************************************************************/
-void SEN15901_reset_measurements(void);
+#endif
 
 /*******************************************************************/
 #define SEN15901_exit_error(base) { ERROR_check_exit(sen15901_status, SEN15901_SUCCESS, base) }

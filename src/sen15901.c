@@ -31,6 +31,7 @@
 
 /*******************************************************************/
 typedef struct {
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
     // State machine.
     SEN15901_process_cb_t process_callback;
     volatile uint8_t tick_second_flag;
@@ -45,12 +46,16 @@ typedef struct {
     volatile uint8_t wind_direction_seconds_count;
     int32_t wind_direction_trend_point_x;
     int32_t wind_direction_trend_point_y;
+#endif
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
     // Rainfall.
     volatile uint32_t rain_edge_count;
+#endif
 } SEN15901_context_t;
 
 /*** SEN15901 local global variables ***/
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 static const int32_t SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[SEN15901_WIND_DIRECTIONS_NUMBER] = {
     SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(688,   891),
     SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(891,   1000),
@@ -69,25 +74,22 @@ static const int32_t SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[SEN15901_WIND_DIREC
     SEN15901_RESISTOR_DIVIDER_RATIO_THRESHOLD(64900, 120000),
     MATH_PERMILLE_MAX
 };
-
 static const uint32_t SEN15901_WIND_DIRECTION_ANGLE_DEGREES[SEN15901_WIND_DIRECTIONS_NUMBER] = { 112, 67, 90, 157, 135, 202, 180, 22, 45, 247, 225, 337, 0, 292, 315, 270 };
+#endif
 
 static SEN15901_context_t sen15901_ctx;
 
 /*** SEN15901 local functions ***/
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*******************************************************************/
 static void _SEN15901_wind_speed_edge_callback(void) {
     // Wind speed.
     sen15901_ctx.wind_speed_edge_count++;
 }
+#endif
 
-/*******************************************************************/
-static void _SEN15901_rainfall_edge_callback(void) {
-    // Increment edge count.
-    sen15901_ctx.rain_edge_count++;
-}
-
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*******************************************************************/
 static void _SEN15901_tick_second_callback(void) {
     // Check enable flag.
@@ -102,16 +104,30 @@ static void _SEN15901_tick_second_callback(void) {
         }
     }
 }
+#endif
+
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
+/*******************************************************************/
+static void _SEN15901_rainfall_edge_callback(void) {
+    // Increment edge count.
+    sen15901_ctx.rain_edge_count++;
+}
+#endif
 
 /*** SEN15901 functions ***/
 
 /*******************************************************************/
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 SEN15901_status_t SEN15901_init(SEN15901_process_cb_t process_callback) {
+#else
+SEN15901_status_t SEN15901_init(void) {
+#endif
     // Local variables.
     SEN15901_status_t status = SEN15901_SUCCESS;
     SEN15901_HW_configuration_t hw_config;
     // Reset data.
     SEN15901_reset_measurements();
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
     // Check parameter.
     if (process_callback == NULL) {
         status = SEN15901_ERROR_NULL_PARAMETER;
@@ -120,10 +136,15 @@ SEN15901_status_t SEN15901_init(SEN15901_process_cb_t process_callback) {
     // Init context.
     sen15901_ctx.wind_measurement_enable_flag = 0;
     sen15901_ctx.process_callback = process_callback;
+#endif
     // Init hardware interface.
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
     hw_config.wind_speed_edge_irq_callback = &_SEN15901_wind_speed_edge_callback;
-    hw_config.rainfall_edge_irq_callback = &_SEN15901_rainfall_edge_callback;
     hw_config.tick_second_irq_callback = &_SEN15901_tick_second_callback;
+#endif
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
+    hw_config.rainfall_edge_irq_callback = &_SEN15901_rainfall_edge_callback;
+#endif
     status = SEN15901_HW_init(&hw_config);
     if (status != SEN15901_SUCCESS) goto errors;
 errors:
@@ -142,36 +163,26 @@ errors:
 }
 
 /*******************************************************************/
-SEN15901_status_t SEN15901_set_wind_measurement(uint8_t enable) {
-    // Local variables.
-    SEN15901_status_t status = SEN15901_SUCCESS;
-    // Update local enable flag.
-    sen15901_ctx.wind_measurement_enable_flag = enable;
-    // Check enable bit.
-    if (enable == 0) {
-        // Reset second counters.
-        sen15901_ctx.wind_speed_seconds_count = 0;
-        sen15901_ctx.wind_direction_seconds_count = 0;
-        sen15901_ctx.tick_second_flag = 0;
-    }
-    // Set interrupt state.
-    status = SEN15901_HW_set_wind_speed_interrupt(enable);
-    if (status != SEN15901_SUCCESS) goto errors;
-errors:
-    return status;
+void SEN15901_reset_measurements(void) {
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+    // Wind speed.
+    sen15901_ctx.wind_speed_seconds_count = 0;
+    sen15901_ctx.wind_speed_edge_count = 0;
+    sen15901_ctx.wind_speed_data_count = 0;
+    sen15901_ctx.wind_speed_mh_average = 0;
+    sen15901_ctx.wind_speed_mh_peak = 0;
+    // Wind direction.
+    sen15901_ctx.wind_direction_seconds_count = 0;
+    sen15901_ctx.wind_direction_trend_point_x = 0;
+    sen15901_ctx.wind_direction_trend_point_y = 0;
+#endif
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
+    // Rainfall.
+    sen15901_ctx.rain_edge_count = 0;
+#endif
 }
 
-/*******************************************************************/
-SEN15901_status_t SEN15901_set_rainfall_measurement(uint8_t enable) {
-    // Local variables.
-    SEN15901_status_t status = SEN15901_SUCCESS;
-    // Set interrupt state.
-    status = SEN15901_HW_set_rainfall_interrupt(enable);
-    if (status != SEN15901_SUCCESS) goto errors;
-errors:
-    return status;
-}
-
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*******************************************************************/
 SEN15901_status_t SEN15901_process(void) {
     // Local variables.
@@ -229,7 +240,31 @@ SEN15901_status_t SEN15901_process(void) {
 errors:
     return status;
 }
+#endif
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*******************************************************************/
+SEN15901_status_t SEN15901_set_wind_measurement(uint8_t enable) {
+    // Local variables.
+    SEN15901_status_t status = SEN15901_SUCCESS;
+    // Update local enable flag.
+    sen15901_ctx.wind_measurement_enable_flag = enable;
+    // Check enable bit.
+    if (enable == 0) {
+        // Reset second counters.
+        sen15901_ctx.wind_speed_seconds_count = 0;
+        sen15901_ctx.wind_direction_seconds_count = 0;
+        sen15901_ctx.tick_second_flag = 0;
+    }
+    // Set interrupt state.
+    status = SEN15901_HW_set_wind_speed_interrupt(enable);
+    if (status != SEN15901_SUCCESS) goto errors;
+errors:
+    return status;
+}
+#endif
+
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*******************************************************************/
 SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_mh, int32_t* peak_speed_mh) {
     // Local variables.
@@ -244,7 +279,9 @@ SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_mh, int32_t* pe
 errors:
     return status;
 }
+#endif
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*******************************************************************/
 SEN15901_status_t SEN15901_get_wind_direction(int32_t* average_direction_degrees, SEN15901_wind_direction_status_t* direction_status) {
     // Local variables.
@@ -268,7 +305,22 @@ SEN15901_status_t SEN15901_get_wind_direction(int32_t* average_direction_degrees
 errors:
     return status;
 }
+#endif
 
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
+/*******************************************************************/
+SEN15901_status_t SEN15901_set_rainfall_measurement(uint8_t enable) {
+    // Local variables.
+    SEN15901_status_t status = SEN15901_SUCCESS;
+    // Set interrupt state.
+    status = SEN15901_HW_set_rainfall_interrupt(enable);
+    if (status != SEN15901_SUCCESS) goto errors;
+errors:
+    return status;
+}
+#endif
+
+#ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
 /*******************************************************************/
 SEN15901_status_t SEN15901_get_rainfall(int32_t* rainfall_um) {
     // Local variables.
@@ -283,21 +335,6 @@ SEN15901_status_t SEN15901_get_rainfall(int32_t* rainfall_um) {
 errors:
     return status;
 }
-
-/*******************************************************************/
-void SEN15901_reset_measurements(void) {
-    // Wind speed.
-    sen15901_ctx.wind_speed_seconds_count = 0;
-    sen15901_ctx.wind_speed_edge_count = 0;
-    sen15901_ctx.wind_speed_data_count = 0;
-    sen15901_ctx.wind_speed_mh_average = 0;
-    sen15901_ctx.wind_speed_mh_peak = 0;
-    // Wind direction.
-    sen15901_ctx.wind_direction_seconds_count = 0;
-    sen15901_ctx.wind_direction_trend_point_x = 0;
-    sen15901_ctx.wind_direction_trend_point_y = 0;
-    // Rainfall.
-    sen15901_ctx.rain_edge_count = 0;
-}
+#endif
 
 #endif /* SEN15901_DRIVER_DISABLE */

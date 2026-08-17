@@ -33,9 +33,11 @@ Here is the versions compatibility table:
 | `SEN15901_DRIVER_GPIO_ERROR_BASE_LAST` | `<value>` | Last error base of the low level GPIO driver. |
 | `SEN15901_DRIVER_TIMER_ERROR_BASE_LAST` | `<value>` | Last error base of the low level timer driver. |
 | `SEN15901_DRIVER_ADC_ERROR_BASE_LAST` | `<value>` | Last error base of the low level ADC driver. |
+| `SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE` | `defined` / `undefined` | Enable wind measurements. |
 | `SEN15901_DRIVER_WIND_DIRECTION_PULL_UP_RESISTOR_OHMS` | `<value>` | Value of the pull-up resistor placed on the wind direction input (in Ohms). |
 | `SEN15901_DRIVER_WIND_SPEED_SAMPLING_TIME_SECONDS` | `<value>` | Time interval in seconds where the wind speed is evaluated. |
 | `SEN15901_DRIVER_WIND_DIRECTION_SAMPLING_PERIOD_SECONDS` | `<value>` | Wind direction reading period in seconds. |
+| `SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE` | `defined` / `undefined` | Enable rainfall measurements. |
 
 # Build
 
@@ -51,9 +53,11 @@ cmake -DCMAKE_TOOLCHAIN_FILE="<toolchain_file_path>" \
       -DSEN15901_DRIVER_GPIO_ERROR_BASE_LAST=0 \
       -DSEN15901_DRIVER_TIMER_ERROR_BASE_LAST=0 \
       -DSEN15901_DRIVER_ADC_ERROR_BASE_LAST=0 \
+      -DSEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE=ON \
       -DSEN15901_DRIVER_WIND_DIRECTION_PULL_UP_RESISTOR_OHMS=10000 \
       -DSEN15901_DRIVER_WIND_SPEED_SAMPLING_TIME_SECONDS=1 \
       -DSEN15901_DRIVER_WIND_DIRECTION_SAMPLING_PERIOD_SECONDS=10 \
+      -DSEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE=ON \
       -G "Unix Makefiles" ..
 make all
 ```

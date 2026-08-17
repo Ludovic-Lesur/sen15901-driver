@@ -34,9 +34,11 @@ if(${BUILD_MODE} STREQUAL STATIC)
     add_compilation_flag(SEN15901_DRIVER_GPIO_ERROR_BASE_LAST "Last error base of the low level GPIO driver." 0)
     add_compilation_flag(SEN15901_DRIVER_TIMER_ERROR_BASE_LAST "Last error base of the low level timer driver." 0)
     add_compilation_flag(SEN15901_DRIVER_ADC_ERROR_BASE_LAST "Last error base of the low level ADC driver." 0)
+    add_compilation_flag(SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE "Enable wind measurements" ON)
     add_compilation_flag(SEN15901_DRIVER_WIND_DIRECTION_PULL_UP_RESISTOR_OHMS "Value of the pull-up resistor placed on the wind direction input (in Ohms)." 10000)
     add_compilation_flag(SEN15901_DRIVER_WIND_SPEED_SAMPLING_TIME_SECONDS "Time interval in seconds where the wind speed is evaluated." 1)
     add_compilation_flag(SEN15901_DRIVER_WIND_DIRECTION_SAMPLING_PERIOD_SECONDS "Wind direction reading period in seconds." 10)
+    add_compilation_flag(SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE "Enable rainfall measurements" ON)
     
     # Remove OFF flags from list and keep flags set to value 0.
     foreach(FLAG ${COMPILATION_FLAGS_LIST})
