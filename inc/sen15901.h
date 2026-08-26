@@ -130,14 +130,14 @@ SEN15901_status_t SEN15901_set_wind_measurement(uint8_t enable);
 
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
- * \fn SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_mh, int32_t* peak_speed_mh)
+ * \fn SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_tenth_kmh, int32_t* peak_speed_tenth_kmh)
  * \brief Read wind speeds.
  * \param[in]   none
- * \param[out]  average_speed_mh: Pointer to integer that will contain the average wind speed since last reset in m/h.
- * \param[out]  peak_speed_mh: Pointer to integer that will contain the peak wind speed since last reset in m/h.
+ * \param[out]  average_speed_tenth_kmh: Pointer to integer that will contain the average wind speed since last reset in tenth of km/h.
+ * \param[out]  peak_speed_tenth_kmh: Pointer to integer that will contain the peak wind speed since last reset in tenth of km/h.
  * \retval      Function execution status.
  *******************************************************************/
-SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_mh, int32_t* peak_speed_mh);
+SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_tenth_kmh, int32_t* peak_speed_tenth_kmh);
 #endif
 
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE

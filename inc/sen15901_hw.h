@@ -79,6 +79,39 @@ SEN15901_status_t SEN15901_HW_set_wind_speed_interrupt(uint8_t enable);
 
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*!******************************************************************
+ * \fn SEN15901_status_t SEN15901_HW_timer_start(void)
+ * \brief Start timer.
+ * \param[in]   none
+ * \param[out]  none
+ * \retval      Function execution status.
+ *******************************************************************/
+SEN15901_status_t SEN15901_HW_timer_start(void);
+#endif
+
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*!******************************************************************
+ * \fn SEN15901_status_t SEN15901_HW_timer_stop(void)
+ * \brief Stop timer.
+ * \param[in]   none
+ * \param[out]  none
+ * \retval      Function execution status.
+ *******************************************************************/
+SEN15901_status_t SEN15901_HW_timer_stop(void);
+#endif
+
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*!******************************************************************
+ * \fn uint32_t SEN15901_HW_timer_get_counter(void)
+ * \brief Get timer counter.
+ * \param[in]   none
+ * \param[out]  none
+ * \retval      Current counter value.
+ *******************************************************************/
+uint32_t SEN15901_HW_timer_get_counter(void);
+#endif
+
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*!******************************************************************
  * \fn SEN15901_status_t SEN15901_HW_adc_get_wind_direction_ratio(int32_t* wind_direction_ratio_permille)
  * \brief Read wind direction analog input ratio.
  * \param[in]   none

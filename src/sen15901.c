@@ -19,8 +19,13 @@
 
 /*** SEN15901 local macros ***/
 
-#define SEN15901_WIND_SPEED_1HZ_TO_MH                           2400
+#define SEN15901_WIND_SPEED_1HZ_TO_TENTH_KMH                    24
+#define SEN15901_WIND_SPEED_ERROR_VALUE                         0xFFFFFFFF
+
 #define SEN15901_WIND_DIRECTIONS_NUMBER                         16
+#define SEN15901_WIND_DIRECTION_SCALING_THRESHOLD               1000000000
+
+#define SEN15901_WIND_WATCHDOG_SECONDS                          6
 
 #define SEN15901_RAIN_EDGE_TO_UM                                279
 
@@ -29,27 +34,40 @@
 
 /*** SEN15901 local structures ***/
 
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*******************************************************************/
+typedef union {
+    uint8_t all;
+    struct {
+        unsigned wind_direction_request :1;
+        unsigned wind_measurement_enable :1;
+    } __attribute__((scalar_storage_order("big-endian"))) __attribute__((packed));
+} SEN15901_flags_t;
+#endif
+
 /*******************************************************************/
 typedef struct {
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
     // State machine.
     SEN15901_process_cb_t process_callback;
-    volatile uint8_t tick_second_flag;
-    uint8_t wind_measurement_enable_flag;
+    SEN15901_flags_t flags;
+    uint8_t wind_watchdog_seconds_count;
     // Wind speed.
-    volatile uint8_t wind_speed_seconds_count;
-    volatile uint32_t wind_speed_edge_count;
+    uint32_t wind_speed_counter_start;
+    uint32_t wind_speed_counter_stop;
     uint32_t wind_speed_data_count;
-    uint32_t wind_speed_mh_average;
-    uint32_t wind_speed_mh_peak;
+    uint32_t wind_speed_tenth_kmh_sum;
+    uint32_t wind_speed_tenth_kmh_peak;
+    uint32_t wind_speed_tenth_kmh_last_for_speed;
+    uint32_t wind_speed_tenth_kmh_last_for_direction;
     // Wind direction.
-    volatile uint8_t wind_direction_seconds_count;
+    uint8_t wind_direction_seconds_count;
     int32_t wind_direction_trend_point_x;
     int32_t wind_direction_trend_point_y;
 #endif
 #ifdef SEN15901_DRIVER_RAINFALL_MEASUREMENTS_ENABLE
     // Rainfall.
-    volatile uint32_t rain_edge_count;
+    uint32_t rain_edge_count;
 #endif
 } SEN15901_context_t;
 
@@ -77,30 +95,86 @@ static const int32_t SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[SEN15901_WIND_DIREC
 static const uint32_t SEN15901_WIND_DIRECTION_ANGLE_DEGREES[SEN15901_WIND_DIRECTIONS_NUMBER] = { 112, 67, 90, 157, 135, 202, 180, 22, 45, 247, 225, 337, 0, 292, 315, 270 };
 #endif
 
-static SEN15901_context_t sen15901_ctx;
+static volatile SEN15901_context_t sen15901_ctx;
 
 /*** SEN15901 local functions ***/
 
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*******************************************************************/
-static void _SEN15901_wind_speed_edge_callback(void) {
+static void _SEN15901_reset_counters(void) {
+    // Watchdog.
+    sen15901_ctx.wind_watchdog_seconds_count = 0;
     // Wind speed.
-    sen15901_ctx.wind_speed_edge_count++;
+    sen15901_ctx.wind_speed_counter_start = 0xFFFFFFFF;
+    sen15901_ctx.wind_speed_counter_stop = 0;
+    sen15901_ctx.wind_speed_tenth_kmh_last_for_speed = 0;
+    sen15901_ctx.wind_speed_tenth_kmh_last_for_direction = 0;
+}
+#endif
+
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*******************************************************************/
+static void _SEN15901_wind_speed_edge_callback(void) {
+    // Local variables.
+    uint32_t wind_speed_counter_delta = 0;
+    uint32_t wind_speed_tenth_kmh = 0;
+    // Check if measurements are enabled.
+    if (sen15901_ctx.flags.wind_measurement_enable != 0) {
+        // Clear watchdog.
+        sen15901_ctx.wind_watchdog_seconds_count = 0;
+        // Capture period.
+        sen15901_ctx.wind_speed_counter_stop = SEN15901_HW_timer_get_counter();
+        // Check counters.
+        if (sen15901_ctx.wind_speed_counter_start < sen15901_ctx.wind_speed_counter_stop) {
+            // Compute delta.
+            wind_speed_counter_delta = (sen15901_ctx.wind_speed_counter_stop - sen15901_ctx.wind_speed_counter_start);
+            // Compute speed.
+            wind_speed_tenth_kmh = (SEN15901_WIND_SPEED_1HZ_TO_TENTH_KMH * 1000000) / (wind_speed_counter_delta * SEN15901_DRIVER_TIMER_STEP_US);
+            // Update peak value.
+            if (wind_speed_tenth_kmh > sen15901_ctx.wind_speed_tenth_kmh_peak) {
+                sen15901_ctx.wind_speed_tenth_kmh_peak = wind_speed_tenth_kmh;
+            }
+            // Update last value.
+            sen15901_ctx.wind_speed_tenth_kmh_last_for_speed = wind_speed_tenth_kmh;
+            sen15901_ctx.wind_speed_tenth_kmh_last_for_direction = wind_speed_tenth_kmh;
+        }
+        // Start new period.
+        sen15901_ctx.wind_speed_counter_start = sen15901_ctx.wind_speed_counter_stop;
+    }
 }
 #endif
 
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*******************************************************************/
 static void _SEN15901_tick_second_callback(void) {
-    // Check enable flag.
-    if (sen15901_ctx.wind_measurement_enable_flag != 0) {
-        // Update local flags.
-        sen15901_ctx.wind_speed_seconds_count++;
+    // Check if measurements are enabled.
+    if (sen15901_ctx.flags.wind_measurement_enable != 0) {
+        // Manage watchdog timer.
+        sen15901_ctx.wind_watchdog_seconds_count++;
+        // Check period.
+        if (sen15901_ctx.wind_watchdog_seconds_count >= SEN15901_WIND_WATCHDOG_SECONDS) {
+            // Reset counters.
+            _SEN15901_reset_counters();
+        }
+        // Compute average wind speed.
+        if (sen15901_ctx.wind_speed_tenth_kmh_last_for_speed != SEN15901_WIND_SPEED_ERROR_VALUE) {
+            // Update sum and data count.
+            sen15901_ctx.wind_speed_tenth_kmh_sum += sen15901_ctx.wind_speed_tenth_kmh_last_for_speed;
+            sen15901_ctx.wind_speed_data_count++;
+            // Reset last value to error.
+            sen15901_ctx.wind_speed_tenth_kmh_last_for_speed = SEN15901_WIND_SPEED_ERROR_VALUE;
+        }
+        // Increment direction second counter.
         sen15901_ctx.wind_direction_seconds_count++;
-        sen15901_ctx.tick_second_flag = 1;
-        // Ask for processing.
-        if (sen15901_ctx.process_callback != NULL) {
-            sen15901_ctx.process_callback();
+        // Check period.
+        if (sen15901_ctx.wind_direction_seconds_count >= SEN15901_DRIVER_WIND_DIRECTION_SAMPLING_PERIOD_SECONDS) {
+            // Reset counter and set request flag.
+            sen15901_ctx.wind_direction_seconds_count = 0;
+            sen15901_ctx.flags.wind_direction_request = 1;
+            // Ask for processing.
+            if (sen15901_ctx.process_callback != NULL) {
+                sen15901_ctx.process_callback();
+            }
         }
     }
 }
@@ -125,8 +199,7 @@ SEN15901_status_t SEN15901_init(void) {
     // Local variables.
     SEN15901_status_t status = SEN15901_SUCCESS;
     SEN15901_HW_configuration_t hw_config;
-    // Reset data.
-    SEN15901_reset_measurements();
+
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
     // Check parameter.
     if (process_callback == NULL) {
@@ -134,8 +207,10 @@ SEN15901_status_t SEN15901_init(void) {
         goto errors;
     }
     // Init context.
-    sen15901_ctx.wind_measurement_enable_flag = 0;
+    sen15901_ctx.flags.all = 0;
     sen15901_ctx.process_callback = process_callback;
+    // Reset data.
+    SEN15901_reset_measurements();
 #endif
     // Init hardware interface.
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
@@ -165,12 +240,12 @@ errors:
 /*******************************************************************/
 void SEN15901_reset_measurements(void) {
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+    // Reset counters.
+    _SEN15901_reset_counters();
     // Wind speed.
-    sen15901_ctx.wind_speed_seconds_count = 0;
-    sen15901_ctx.wind_speed_edge_count = 0;
     sen15901_ctx.wind_speed_data_count = 0;
-    sen15901_ctx.wind_speed_mh_average = 0;
-    sen15901_ctx.wind_speed_mh_peak = 0;
+    sen15901_ctx.wind_speed_tenth_kmh_sum = 0;
+    sen15901_ctx.wind_speed_tenth_kmh_peak = 0;
     // Wind direction.
     sen15901_ctx.wind_direction_seconds_count = 0;
     sen15901_ctx.wind_direction_trend_point_x = 0;
@@ -187,54 +262,43 @@ void SEN15901_reset_measurements(void) {
 SEN15901_status_t SEN15901_process(void) {
     // Local variables.
     SEN15901_status_t status = SEN15901_SUCCESS;
-    uint32_t wind_speed_mh = 0;
     uint32_t wind_direction_degrees = 0;
     int32_t wind_direction_ratio_permille = 0;
     uint8_t ratio_valid = 0;
     uint8_t idx = 0;
-    // Check flag.
-    if (sen15901_ctx.tick_second_flag == 0) goto errors;
-    // Clear flag.
-    sen15901_ctx.tick_second_flag = 0;
-    // Update wind speed if period is reached.
-    if (sen15901_ctx.wind_speed_seconds_count >= SEN15901_DRIVER_WIND_SPEED_SAMPLING_TIME_SECONDS) {
-        // Reset seconds counter.
-        sen15901_ctx.wind_speed_seconds_count = 0;
-        // Compute new value.
-        wind_speed_mh = (sen15901_ctx.wind_speed_edge_count * SEN15901_WIND_SPEED_1HZ_TO_MH) / (SEN15901_DRIVER_WIND_SPEED_SAMPLING_TIME_SECONDS);
-        sen15901_ctx.wind_speed_edge_count = 0;
-        // Update peak value if required.
-        if (wind_speed_mh > sen15901_ctx.wind_speed_mh_peak) {
-            sen15901_ctx.wind_speed_mh_peak = wind_speed_mh;
+    // Check request.
+    if (sen15901_ctx.flags.wind_direction_request == 0) goto errors;
+    // Clear request.
+    sen15901_ctx.flags.wind_direction_request = 0;
+    // Compute direction only if there is wind.
+    if (sen15901_ctx.wind_speed_tenth_kmh_last_for_direction > 0) {
+        // Turn external ADC on.
+        status = SEN15901_HW_adc_get_wind_direction_ratio(&wind_direction_ratio_permille);
+        if (status != SEN15901_SUCCESS) goto errors;
+        // Convert ratio to direction.
+        for (idx = 0; idx < SEN15901_WIND_DIRECTIONS_NUMBER; idx++) {
+            if (wind_direction_ratio_permille <= SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[idx]) {
+                // Update current angle and table index.
+                wind_direction_degrees = SEN15901_WIND_DIRECTION_ANGLE_DEGREES[idx];
+                ratio_valid = 1;
+                break;
+            }
         }
-        // Update average value.
-        MATH_rolling_mean(sen15901_ctx.wind_speed_mh_average, sen15901_ctx.wind_speed_data_count, wind_speed_mh, uint32_t);
-    }
-    // Update wind direction if period is reached.
-    if (sen15901_ctx.wind_direction_seconds_count >= SEN15901_DRIVER_WIND_DIRECTION_SAMPLING_PERIOD_SECONDS) {
-        // Reset seconds counter.
-        sen15901_ctx.wind_direction_seconds_count = 0;
-        // Compute direction only if there is wind.
-        if ((wind_speed_mh / 1000) > 0) {
-            // Turn external ADC on.
-            status = SEN15901_HW_adc_get_wind_direction_ratio(&wind_direction_ratio_permille);
-            if (status != SEN15901_SUCCESS) goto errors;
-            // Convert ratio to direction.
-            for (idx = 0; idx < SEN15901_WIND_DIRECTIONS_NUMBER; idx++) {
-                if (wind_direction_ratio_permille <= SEN15901_WIND_DIRECTION_RATIO_THRESHOLD[idx]) {
-                    // Update current angle and table index.
-                    wind_direction_degrees = SEN15901_WIND_DIRECTION_ANGLE_DEGREES[idx];
-                    ratio_valid = 1;
-                    break;
-                }
-            }
-            if (ratio_valid == 0) {
-                status = SEN15901_ERROR_RESISTOR_DIVIDER_RATIO;
-                goto errors;
-            }
-            // Add new vector weighted by speed.
-            sen15901_ctx.wind_direction_trend_point_x += ((int32_t) (wind_speed_mh / 1000)) * ((int32_t) MATH_COS_TABLE[wind_direction_degrees]);
-            sen15901_ctx.wind_direction_trend_point_y += ((int32_t) (wind_speed_mh / 1000)) * ((int32_t) MATH_SIN_TABLE[wind_direction_degrees]);
+        if (ratio_valid == 0) {
+            status = SEN15901_ERROR_RESISTOR_DIVIDER_RATIO;
+            goto errors;
+        }
+        // Add new vector weighted by speed.
+        sen15901_ctx.wind_direction_trend_point_x += ((int32_t) sen15901_ctx.wind_speed_tenth_kmh_last_for_direction) * ((int32_t) MATH_COS_TABLE[wind_direction_degrees]);
+        sen15901_ctx.wind_direction_trend_point_y += ((int32_t) sen15901_ctx.wind_speed_tenth_kmh_last_for_direction) * ((int32_t) MATH_SIN_TABLE[wind_direction_degrees]);
+        // Scaling to avoid overflow.
+        if ((sen15901_ctx.wind_direction_trend_point_x > (+SEN15901_WIND_DIRECTION_SCALING_THRESHOLD)) ||
+            (sen15901_ctx.wind_direction_trend_point_x < (-SEN15901_WIND_DIRECTION_SCALING_THRESHOLD)) ||
+            (sen15901_ctx.wind_direction_trend_point_y > (+SEN15901_WIND_DIRECTION_SCALING_THRESHOLD)) ||
+            (sen15901_ctx.wind_direction_trend_point_y < (-SEN15901_WIND_DIRECTION_SCALING_THRESHOLD)))
+        {
+            sen15901_ctx.wind_direction_trend_point_x = (sen15901_ctx.wind_direction_trend_point_x / 2);
+            sen15901_ctx.wind_direction_trend_point_y = (sen15901_ctx.wind_direction_trend_point_y / 2);
         }
     }
 errors:
@@ -247,18 +311,23 @@ errors:
 SEN15901_status_t SEN15901_set_wind_measurement(uint8_t enable) {
     // Local variables.
     SEN15901_status_t status = SEN15901_SUCCESS;
-    // Update local enable flag.
-    sen15901_ctx.wind_measurement_enable_flag = enable;
     // Check enable bit.
-    if (enable == 0) {
-        // Reset second counters.
-        sen15901_ctx.wind_speed_seconds_count = 0;
-        sen15901_ctx.wind_direction_seconds_count = 0;
-        sen15901_ctx.tick_second_flag = 0;
+    if ((enable == 0) && (sen15901_ctx.flags.wind_measurement_enable != 0)) {
+        // Stop timer.
+        SEN15901_HW_timer_stop();
+    }
+    if ((enable != 0) && (sen15901_ctx.flags.wind_measurement_enable == 0)) {
+        // Reset counters.
+        _SEN15901_reset_counters();
+        // Start timer.
+        status = SEN15901_HW_timer_start();
+        if (status != SEN15901_SUCCESS) goto errors;
     }
     // Set interrupt state.
     status = SEN15901_HW_set_wind_speed_interrupt(enable);
     if (status != SEN15901_SUCCESS) goto errors;
+    // Update internal flag.
+    sen15901_ctx.flags.wind_measurement_enable = (enable == 0) ? 0 : 1;
 errors:
     return status;
 }
@@ -266,16 +335,16 @@ errors:
 
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*******************************************************************/
-SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_mh, int32_t* peak_speed_mh) {
+SEN15901_status_t SEN15901_get_wind_speed(int32_t* average_speed_tenth_kmh, int32_t* peak_speed_tenth_kmh) {
     // Local variables.
     SEN15901_status_t status = SEN15901_SUCCESS;
     // Check parameters.
-    if ((average_speed_mh == NULL) || (peak_speed_mh == NULL)) {
+    if ((average_speed_tenth_kmh == NULL) || (peak_speed_tenth_kmh == NULL)) {
         status = SEN15901_ERROR_NULL_PARAMETER;
         goto errors;
     }
-    (*average_speed_mh) = (int32_t) (sen15901_ctx.wind_speed_mh_average);
-    (*peak_speed_mh) = (int32_t) (sen15901_ctx.wind_speed_mh_peak);
+    (*average_speed_tenth_kmh) = (int32_t) (sen15901_ctx.wind_speed_tenth_kmh_sum / sen15901_ctx.wind_speed_data_count);
+    (*peak_speed_tenth_kmh) = (int32_t) (sen15901_ctx.wind_speed_tenth_kmh_peak);
 errors:
     return status;
 }

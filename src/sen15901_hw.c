@@ -47,6 +47,34 @@ SEN15901_status_t __attribute__((weak)) SEN15901_HW_set_wind_speed_interrupt(uin
 
 #ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
 /*******************************************************************/
+SEN15901_status_t __attribute__((weak)) SEN15901_HW_timer_start(void) {
+    // Local variables.
+    SEN15901_status_t status = SEN15901_ERROR_HW_FUNCTION_NOT_IMPLEMENTED;
+    /* To be implemented */
+    return status;
+}
+#endif
+
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*******************************************************************/
+SEN15901_status_t __attribute__((weak)) SEN15901_HW_timer_stop(void) {
+    // Local variables.
+    SEN15901_status_t status = SEN15901_ERROR_HW_FUNCTION_NOT_IMPLEMENTED;
+    /* To be implemented */
+    return status;
+}
+#endif
+
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*******************************************************************/
+uint32_t __attribute__((weak)) SEN15901_HW_timer_get_counter(void) {
+    /* To be implemented */
+    return 0;
+}
+#endif
+
+#ifdef SEN15901_DRIVER_WIND_MEASUREMENTS_ENABLE
+/*******************************************************************/
 SEN15901_status_t __attribute__((weak)) SEN15901_HW_adc_get_wind_direction_ratio(int32_t* wind_direction_ratio_permille) {
     // Local variables.
     SEN15901_status_t status = SEN15901_ERROR_HW_FUNCTION_NOT_IMPLEMENTED;
