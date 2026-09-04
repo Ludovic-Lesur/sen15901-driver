@@ -13,6 +13,7 @@ Here is the versions compatibility table:
 
 | **sen15901-driver** | **embedded-utils** |
 |:---:|:---:|
+| [sw4.0](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw4.0) | >= [sw7.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw7.0) |
 | [sw3.0](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw3.0) | >= [sw7.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw7.0) |
 | [sw2.7](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.7) | >= [sw7.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw7.0) |
 | [sw2.6](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw2.6) | >= [sw7.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw7.0) |
@@ -25,8 +26,8 @@ Here is the versions compatibility table:
 | [sw1.1](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw1.1) | [sw3.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw3.0) |
 | [sw1.0](https://github.com/Ludovic-Lesur/sen15901-driver/releases/tag/sw1.0) | [sw3.0](https://github.com/Ludovic-Lesur/embedded-utils/releases/tag/sw3.0) |
 
-> [!NOTE]
-> The low level timer must have a minimum period of 7 seconds, the recommended configuration is more than 60 seconds with 1ms step. Once started, it is advised to keep the timer running with its natural overflow, to ensure a good measurements continuity (the overflow event is internally managed by the driver).
+> [!WARNING]
+> The low level timer must have a minimum period of 7 seconds, the recommended configuration is more than 15s with a 250µs step. Once started, it is advised to keep the timer running with its natural overflow, to ensure a good measurements continuity (the overflow event is internally managed by the driver).
 
 # Compilation flags
 
